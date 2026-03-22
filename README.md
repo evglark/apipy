@@ -4,13 +4,14 @@
 
 ```bash
 source .venv/bin/activate
-uvicorn main:app --reload
+uvicorn apipy.main:app --reload
+deactivate
 ```
 
 ## Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -e .[dev]
 ```
 
 ## Format code
@@ -18,6 +19,9 @@ pip install -r requirements.txt
 ```bash
 black .
 ruff check . --fix
+
+black --check .
+ruff check .
 ```
 
 ## Run tests

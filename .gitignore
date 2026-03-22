@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+.venv/
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# IDE (если нужно)
+.vscode/
+.idea/
