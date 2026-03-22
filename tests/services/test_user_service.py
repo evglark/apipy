@@ -1,5 +1,4 @@
 from services.user_service import (
-    get_all_users,
     get_user_by_id,
     create_user,
     delete_user,

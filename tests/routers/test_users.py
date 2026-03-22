@@ -17,4 +17,3 @@ def test_create_user():
     data = response.json()
     assert data["name"] == "Alice"
     assert "id" in data
-

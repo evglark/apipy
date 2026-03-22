@@ -12,6 +12,7 @@ router = APIRouter(prefix="/users")
 # --- "база" (пока просто в памяти) ---
 fake_db = [{"id": 1, "name": "Alice"}]
 
+
 @router.get("/", response_model=list[User])
 def get_users():
     return get_all_users(fake_db)
