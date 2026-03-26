@@ -18,6 +18,25 @@ def create_user(data: dict, db):
     return new_user
 
 
+def update_user(user_id: int, data: dict, db):
+    user = get_user_by_id(user_id, db)
+    if not user:
+        return None
+
+    user["name"] = data["name"]
+    return user
+
+
+def patch_user(user_id: int, data: dict, db):
+    user = get_user_by_id(user_id, db)
+    if not user:
+        return None
+
+    for field, value in data.items():
+        user[field] = value
+    return user
+
+
 def delete_user(user_id: int, db):
     for i, user in enumerate(db):
         if user["id"] == user_id:

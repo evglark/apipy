@@ -8,3 +8,7 @@ class User(BaseModel):
 
 class UserCreate(BaseModel):
     name: str
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
