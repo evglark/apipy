@@ -4,6 +4,7 @@
 
 ```bash
 source .venv/bin/activate
+pip install -e .[dev]
 uvicorn apipy.main:app --reload
 deactivate
 ```
@@ -28,4 +29,6 @@ ruff check .
 
 ```bash
 pytest
+
+pytest -q --maxfail=1
 ```
