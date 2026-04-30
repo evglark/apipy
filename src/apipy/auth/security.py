@@ -5,7 +5,7 @@ from os import getenv
 from passlib.context import CryptContext
 
 SECRET_KEY = getenv("API_SECRET_KEY", "dev-secret-change-me")
-JWT_ALGORITHM = getenv("JWT_ALGORITHM", "RS256")
+JWT_ALGORITHM = getenv("JWT_ALGORITHM", "HS256")
 JWT_PRIVATE_KEY = getenv(
     "JWT_PRIVATE_KEY",
     "-----BEGIN PRIVATE KEY-----\n"
@@ -74,7 +74,14 @@ def create_jwt(payload: dict, expires_in_seconds: int) -> str:
 
     now = int(time.time())
     body = payload.copy()
-    body.update({"iat": now, "exp": now + expires_in_seconds, "iss": JWT_ISSUER, "aud": JWT_AUDIENCE})
+    body.update(
+        {
+            "iat": now,
+            "exp": now + expires_in_seconds,
+            "iss": JWT_ISSUER,
+            "aud": JWT_AUDIENCE,
+        }
+    )
     if JWT_ALGORITHM.startswith("HS"):
         return jwt.encode(body, SECRET_KEY, algorithm=JWT_ALGORITHM)
     return jwt.encode(body, JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
@@ -85,7 +92,13 @@ def decode_jwt(token: str) -> dict | None:
 
     try:
         key = SECRET_KEY if JWT_ALGORITHM.startswith("HS") else JWT_PUBLIC_KEY
-        return jwt.decode(token, key, algorithms=[JWT_ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
+        return jwt.decode(
+            token,
+            key,
+            algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+        )
     except Exception:
         return None
 

@@ -1,46 +1,59 @@
-def get_all_users(db):
-    return db
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from apipy.users.models import User
 
 
-def get_user_by_id(user_id: int, db):
-    for user in db:
-        if user["id"] == user_id:
-            return user
-    return None
+async def get_all_users(db: AsyncSession):
+    result = await db.execute(select(User))
+    return result.scalars().all()
 
 
-def create_user(data: dict, db):
-    new_user = {
-        "id": len(db) + 1,
-        "name": data["name"],
-        "email": data["email"],
-    }
-    db.append(new_user)
+async def get_user_by_id(user_id: int, db: AsyncSession):
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
+async def create_user(data: dict, db: AsyncSession):
+    new_user = User(
+        name=data["name"],
+        email=data["email"],
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
     return new_user
 
 
-def update_user(user_id: int, data: dict, db):
-    user = get_user_by_id(user_id, db)
+async def update_user(user_id: int, data: dict, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
     if not user:
         return None
 
-    user["name"] = data["name"]
-    user["email"] = data["email"]
+    user.name = data["name"]
+    user.email = data["email"]
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
-def patch_user(user_id: int, data: dict, db):
-    user = get_user_by_id(user_id, db)
+async def patch_user(user_id: int, data: dict, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
     if not user:
         return None
 
     for field, value in data.items():
-        user[field] = value
+        setattr(user, field, value)
+
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
-def delete_user(user_id: int, db):
-    for i, user in enumerate(db):
-        if user["id"] == user_id:
-            return db.pop(i)
-    return None
+async def delete_user(user_id: int, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
+    if not user:
+        return None
+
+    await db.delete(user)
+    await db.commit()
+    return user

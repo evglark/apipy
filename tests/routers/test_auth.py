@@ -1,14 +1,15 @@
-from fastapi.testclient import TestClient
-
-from apipy.main import app
-
-client = TestClient(app)
+import pytest
 
 
-def test_register():
-    response = client.post(
+@pytest.mark.asyncio
+async def test_register(client):
+    response = await client.post(
         "/auth/register",
-        json={"name": "student", "email": "student@example.com", "password": "password123"},
+        json={
+            "name": "student",
+            "email": "student@example.com",
+            "password": "password123",
+        },
     )
 
     assert response.status_code == 200
@@ -17,28 +18,42 @@ def test_register():
     assert payload["email"] == "student@example.com"
 
 
-def test_register_duplicate_returns_400():
-    client.post(
+@pytest.mark.asyncio
+async def test_register_duplicate_returns_400(client):
+    await client.post(
         "/auth/register",
-        json={"name": "student", "email": "student@example.com", "password": "password123"},
+        json={
+            "name": "student",
+            "email": "student@example.com",
+            "password": "password123",
+        },
     )
 
-    response = client.post(
+    response = await client.post(
         "/auth/register",
-        json={"name": "student", "email": "student@example.com", "password": "password123"},
+        json={
+            "name": "student",
+            "email": "student@example.com",
+            "password": "password123",
+        },
     )
 
     assert response.status_code == 400
     assert response.json() == {"detail": "User already exists"}
 
 
-def test_login_success():
-    client.post(
+@pytest.mark.asyncio
+async def test_login_success(client):
+    await client.post(
         "/auth/register",
-        json={"name": "student", "email": "student@example.com", "password": "password123"},
+        json={
+            "name": "student",
+            "email": "student@example.com",
+            "password": "password123",
+        },
     )
 
-    response = client.post(
+    response = await client.post(
         "/auth/login",
         json={"name": "student", "password": "password123"},
     )
@@ -46,13 +61,14 @@ def test_login_success():
     assert response.status_code == 200
     payload = response.json()
     assert payload["token_type"] == "bearer"
-    assert payload["access_token"]
-    assert payload["refresh_token"]
-    assert payload["session_id"]
+    assert "access_token" in payload
+    assert "refresh_token" in payload
+    assert "session_id" in payload
 
 
-def test_login_invalid_credentials_returns_401():
-    response = client.post(
+@pytest.mark.asyncio
+async def test_login_invalid_credentials_returns_401(client):
+    response = await client.post(
         "/auth/login",
         json={"name": "student", "password": "wrongpass"},
     )

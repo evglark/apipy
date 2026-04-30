@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 
-from apipy.storage import STATE
 from apipy.users.schemas import User, UserCreate, UserUpdate
 from apipy.users.service import (
     create_user as create_user_service,
@@ -11,46 +10,56 @@ from apipy.users.service import (
     update_user as update_user_service,
 )
 
+from apipy.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+
 router = APIRouter(prefix="/users")
 
 
 @router.get("/", response_model=list[User])
-def get_users():
-    return get_all_users(STATE["users"])
+async def get_users(db: AsyncSession = Depends(get_db)):
+    return await get_all_users(db)
 
 
 @router.get("/{user_id}", response_model=User)
-def get_user(user_id: int):
-    user = get_user_by_id(user_id, STATE["users"])
+async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_id(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
 @router.post("/", response_model=User)
-def create_user(user: UserCreate):
-    return create_user_service(user.model_dump(), STATE["users"])
+async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    return await create_user_service(user.model_dump(), db)
 
 
 @router.put("/{user_id}", response_model=User)
-def update_user(user_id: int, user: UserCreate):
-    updated_user = update_user_service(user_id, user.model_dump(), STATE["users"])
+async def update_user(
+    user_id: int, user: UserCreate, db: AsyncSession = Depends(get_db)
+):
+    updated_user = await update_user_service(user_id, user.model_dump(), db)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
 
 
 @router.patch("/{user_id}", response_model=User)
-def patch_user(user_id: int, user: UserUpdate):
-    updated_user = patch_user_service(user_id, user.model_dump(exclude_unset=True), STATE["users"])
+async def patch_user(
+    user_id: int, user: UserUpdate, db: AsyncSession = Depends(get_db)
+):
+    updated_user = await patch_user_service(
+        user_id, user.model_dump(exclude_unset=True), db
+    )
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
 
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int):
-    user = delete_user_service(user_id, STATE["users"])
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    user = await delete_user_service(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"status": f"user {user_id} deleted"}

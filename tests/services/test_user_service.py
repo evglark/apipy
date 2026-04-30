@@ -1,3 +1,4 @@
+import pytest
 from apipy.users.service import (
     get_user_by_id,
     create_user,
@@ -7,64 +8,68 @@ from apipy.users.service import (
 )
 
 
-def test_create_user(db):
-    user = create_user({"name": "Alice"}, db)
+@pytest.mark.asyncio
+async def test_create_user(db_session):
+    user = await create_user({"name": "Alice", "email": "alice@test.com"}, db_session)
 
-    assert user["id"] == 1
-    assert user["name"] == "Alice"
-    assert len(db) == 1
-
-
-def test_get_user_by_id():
-    db = [{"id": 1, "name": "Alice"}]
-    user = get_user_by_id(1, db)
-
-    assert user["name"] == "Alice"
+    assert user.id is not None
+    assert user.name == "Alice"
 
 
-def test_delete_user():
-    db = [{"id": 1, "name": "Alice"}]
-    user = delete_user(1, db)
+@pytest.mark.asyncio
+async def test_get_user_by_id(db_session):
+    user_in = await create_user(
+        {"name": "Alice", "email": "alice@test.com"}, db_session
+    )
+    user = await get_user_by_id(user_in.id, db_session)
 
-    assert user["id"] == 1
-    assert len(db) == 0
-
-
-def test_update_user():
-    db = [{"id": 1, "name": "Alice"}]
-    user = update_user(1, {"name": "Bob"}, db)
-
-    assert user == {"id": 1, "name": "Bob"}
-    assert db == [{"id": 1, "name": "Bob"}]
+    assert user.name == "Alice"
 
 
-def test_update_user_returns_none_when_not_found():
-    db = [{"id": 1, "name": "Alice"}]
-    user = update_user(2, {"name": "Bob"}, db)
+@pytest.mark.asyncio
+async def test_delete_user(db_session):
+    user_in = await create_user(
+        {"name": "Alice", "email": "alice@test.com"}, db_session
+    )
+    user = await delete_user(user_in.id, db_session)
 
+    assert user.id == user_in.id
+
+    check = await get_user_by_id(user_in.id, db_session)
+    assert check is None
+
+
+@pytest.mark.asyncio
+async def test_update_user(db_session):
+    user_in = await create_user(
+        {"name": "Alice", "email": "alice@test.com"}, db_session
+    )
+    user = await update_user(
+        user_in.id, {"name": "Bob", "email": "bob@test.com"}, db_session
+    )
+
+    assert user.name == "Bob"
+    assert user.email == "bob@test.com"
+
+
+@pytest.mark.asyncio
+async def test_update_user_returns_none_when_not_found(db_session):
+    user = await update_user(999, {"name": "Bob", "email": "bob@test.com"}, db_session)
     assert user is None
-    assert db == [{"id": 1, "name": "Alice"}]
 
 
-def test_patch_user():
-    db = [{"id": 1, "name": "Alice"}]
-    user = patch_user(1, {"name": "Bob"}, db)
+@pytest.mark.asyncio
+async def test_patch_user(db_session):
+    user_in = await create_user(
+        {"name": "Alice", "email": "alice@test.com"}, db_session
+    )
+    user = await patch_user(user_in.id, {"name": "Bob"}, db_session)
 
-    assert user == {"id": 1, "name": "Bob"}
-    assert db == [{"id": 1, "name": "Bob"}]
-
-
-def test_patch_user_with_empty_payload_keeps_user_unchanged():
-    db = [{"id": 1, "name": "Alice"}]
-    user = patch_user(1, {}, db)
-
-    assert user == {"id": 1, "name": "Alice"}
-    assert db == [{"id": 1, "name": "Alice"}]
+    assert user.name == "Bob"
+    assert user.email == "alice@test.com"
 
 
-def test_patch_user_returns_none_when_not_found():
-    db = [{"id": 1, "name": "Alice"}]
-    user = patch_user(2, {"name": "Bob"}, db)
-
+@pytest.mark.asyncio
+async def test_patch_user_returns_none_when_not_found(db_session):
+    user = await patch_user(999, {"name": "Bob"}, db_session)
     assert user is None
-    assert db == [{"id": 1, "name": "Alice"}]

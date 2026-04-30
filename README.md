@@ -12,7 +12,7 @@
 
 ```bash
 source .venv/bin/activate
-pip install -e .[dev]
+pip install -e ".[dev]"
 uvicorn apipy.main:app --reload
 deactivate
 ```
@@ -29,23 +29,26 @@ PostgreSQL: `localhost:5432` (`apipy/apipy`, db `apipy`)
 ## Install dependencies
 
 ```bash
-pip install -e .[dev]
+pip install -e ".[dev]"
 ```
 
-## Format code
+## Check style
 
 ```bash
-black .
-ruff check . --fix
-
-black --check .
+ruff format --check .
 ruff check .
+```
+
+## Format and Lint code
+
+```bash
+ruff format .
+ruff check . --fix
 ```
 
 ## Run tests
 
 ```bash
 PYTHONPATH=src pytest
-
 PYTHONPATH=src pytest -q --maxfail=1
 ```
