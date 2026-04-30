@@ -7,13 +7,29 @@ from apipy.auth.models import (
     fake_credentials_db,
     ip_rate_limit_db,
     login_attempts_db,
+    magic_tokens_db,
     refresh_tokens_db,
     security_events_db,
     token_blacklist,
 )
-from apipy.auth.schemas import LoginRequest, RefreshRequest, RegisterRequest, RegisterResponse, TokenPairResponse
+from apipy.auth.schemas import (
+    LoginRequest,
+    MagicLinkConsumeRequest,
+    MagicLinkRequest,
+    RefreshRequest,
+    RegisterRequest,
+    RegisterResponse,
+    TokenPairResponse,
+)
 from apipy.auth.security import IP_RATE_LIMIT_ATTEMPTS, IP_RATE_LIMIT_WINDOW_SECONDS, decode_jwt
-from apipy.auth.service import login_user, logout_user, refresh_access_token, register_user
+from apipy.auth.service import (
+    consume_magic_link,
+    create_magic_link,
+    login_user,
+    logout_user,
+    refresh_access_token,
+    register_user,
+)
 from apipy.users.models import fake_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -31,7 +47,7 @@ def _assert_ip_rate_limit(ip: str):
 
 @router.post("/register", response_model=RegisterResponse)
 def register(payload: RegisterRequest):
-    created_user = register_user(payload.name, payload.password, fake_db, fake_credentials_db, security_events_db)
+    created_user = register_user(payload.name, payload.email, payload.password, fake_db, fake_credentials_db, security_events_db)
     if not created_user:
         raise HTTPException(status_code=400, detail="User already exists")
     return created_user
@@ -69,10 +85,26 @@ def refresh(payload: RefreshRequest):
 
 @router.post("/logout")
 def logout(payload: RefreshRequest):
-    ok = logout_user(payload.refresh_token, refresh_tokens_db, token_blacklist, security_events_db)
+    ok = logout_user(payload.refresh_token, refresh_tokens_db, token_blacklist, security_events_db, payload.session_id)
     if not ok:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     return {"status": "logged out"}
+
+
+@router.post("/magic-link/request")
+def request_magic_link(payload: MagicLinkRequest):
+    magic_link = create_magic_link(payload.email, fake_db, magic_tokens_db, security_events_db)
+    if not magic_link:
+        raise HTTPException(status_code=404, detail="User not found")
+    return magic_link
+
+
+@router.post("/magic-link/consume", response_model=TokenPairResponse)
+def login_by_magic_link(payload: MagicLinkConsumeRequest):
+    token_pair = consume_magic_link(payload.token, fake_db, refresh_tokens_db, magic_tokens_db, security_events_db)
+    if not token_pair:
+        raise HTTPException(status_code=401, detail="Invalid or expired magic link")
+    return token_pair
 
 
 @router.get("/me")

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class RegisterRequest(BaseModel):
     name: str
+    email: str
     password: str
 
 
@@ -21,11 +22,21 @@ class TokenPairResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+    session_id: str | None = None
 
 
 class RegisterResponse(BaseModel):
     id: int
     name: str
+    email: str
+
+
+class MagicLinkRequest(BaseModel):
+    email: str
+
+
+class MagicLinkConsumeRequest(BaseModel):
+    token: str
 
 
 class UserClaims(BaseModel):

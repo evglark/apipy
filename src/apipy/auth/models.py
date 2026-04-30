@@ -6,3 +6,4 @@ token_blacklist: set[str] = set()
 login_attempts_db: dict[str, dict] = {}
 ip_rate_limit_db: dict[str, list[int]] = {}
 security_events_db: list[dict] = []
+magic_tokens_db: list[dict] = []
