@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from apipy.users.models import fake_db
+from apipy.storage import STATE
 from apipy.users.schemas import User, UserCreate, UserUpdate
 from apipy.users.service import (
     create_user as create_user_service,
@@ -16,12 +16,12 @@ router = APIRouter(prefix="/users")
 
 @router.get("/", response_model=list[User])
 def get_users():
-    return get_all_users(fake_db)
+    return get_all_users(STATE["users"])
 
 
 @router.get("/{user_id}", response_model=User)
 def get_user(user_id: int):
-    user = get_user_by_id(user_id, fake_db)
+    user = get_user_by_id(user_id, STATE["users"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -29,12 +29,12 @@ def get_user(user_id: int):
 
 @router.post("/", response_model=User)
 def create_user(user: UserCreate):
-    return create_user_service(user.model_dump(), fake_db)
+    return create_user_service(user.model_dump(), STATE["users"])
 
 
 @router.put("/{user_id}", response_model=User)
 def update_user(user_id: int, user: UserCreate):
-    updated_user = update_user_service(user_id, user.model_dump(), fake_db)
+    updated_user = update_user_service(user_id, user.model_dump(), STATE["users"])
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
@@ -42,7 +42,7 @@ def update_user(user_id: int, user: UserCreate):
 
 @router.patch("/{user_id}", response_model=User)
 def patch_user(user_id: int, user: UserUpdate):
-    updated_user = patch_user_service(user_id, user.model_dump(exclude_unset=True), fake_db)
+    updated_user = patch_user_service(user_id, user.model_dump(exclude_unset=True), STATE["users"])
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
@@ -50,7 +50,7 @@ def patch_user(user_id: int, user: UserUpdate):
 
 @router.delete("/{user_id}")
 def delete_user(user_id: int):
-    user = delete_user_service(user_id, fake_db)
+    user = delete_user_service(user_id, STATE["users"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"status": f"user {user_id} deleted"}
