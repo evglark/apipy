@@ -1,53 +1,47 @@
-from apipy.auth.security import decode_jwt, hash_password
-from apipy.auth.service import login_user, logout_user, refresh_access_token, register_user
+from apipy.services.auth_service import (
+    get_auth_user_by_username,
+    login_user,
+    register_user,
+)
 
 
-def test_login_user_success_returns_token_pair_with_session_claims():
-    users_db = [{"id": 1, "name": "Alice", "email": "alice@example.com"}]
-    credentials_db = [{"user_id": 1, "password_hash": hash_password("password123")}]
-    refresh_tokens_db = []
-    login_attempts_db = {}
-    events = []
+def test_register_user_creates_record():
+    users_db = []
 
-    result = login_user(
-        "Alice", "password123", users_db, credentials_db, refresh_tokens_db, login_attempts_db, events, "iphone"
-    )
+    created_user = register_user("student", "password123", users_db)
 
-    assert result is not None
-    assert "access_token" in result
-    claims = decode_jwt(result["access_token"])
-    assert claims["iss"]
-    assert claims["aud"]
-    assert claims["device_id"] == "iphone"
+    assert created_user == {"id": 1, "username": "student"}
+    assert len(users_db) == 1
+    assert users_db[0]["password_hash"] != "password123"
+    assert users_db[0]["salt"]
 
 
-def test_refresh_rotation_revokes_previous_refresh():
-    users_db = [{"id": 1, "name": "Alice", "email": "alice@example.com"}]
-    credentials_db = []
-    refresh_tokens_db = []
-    login_attempts_db = {}
-    events = []
+def test_get_auth_user_by_username_returns_none_for_missing_user():
+    users_db = [{"id": 1, "username": "student", "password_hash": "x", "salt": "y"}]
 
-    register_user("Bob", "bob@example.com", "bob-secret", users_db, credentials_db, events)
-    tokens = login_user("Bob", "bob-secret", users_db, credentials_db, refresh_tokens_db, login_attempts_db, events)
+    result = get_auth_user_by_username("unknown", users_db)
 
-    refreshed = refresh_access_token(tokens["refresh_token"], refresh_tokens_db, events)
-    assert refreshed is not None
-    assert refreshed["refresh_token"] != tokens["refresh_token"]
-    assert refresh_access_token(tokens["refresh_token"], refresh_tokens_db, events) is None
+    assert result is None
 
 
-def test_refresh_and_logout_flow():
-    users_db = [{"id": 1, "name": "Alice", "email": "alice@example.com"}]
-    credentials_db = []
-    refresh_tokens_db = []
-    login_attempts_db = {}
-    blacklist = set()
-    events = []
+def test_login_user_returns_token_for_valid_credentials():
+    users_db = []
+    sessions_db = {}
+    register_user("student", "password123", users_db)
 
-    register_user("Alice2", "alice2@example.com", "secret", users_db, credentials_db, events)
-    tokens = login_user("Alice2", "secret", users_db, credentials_db, refresh_tokens_db, login_attempts_db, events)
+    login_result = login_user("student", "password123", users_db, sessions_db)
 
-    assert logout_user(tokens["refresh_token"], refresh_tokens_db, blacklist, events)
-    assert tokens["refresh_token"] in blacklist
-    assert any(e["event"] == "logout_success" for e in events)
+    assert login_result is not None
+    assert login_result["user_id"] == 1
+    assert login_result["access_token"] in sessions_db
+
+
+def test_login_user_returns_none_for_invalid_password():
+    users_db = []
+    sessions_db = {}
+    register_user("student", "password123", users_db)
+
+    login_result = login_user("student", "wrong", users_db, sessions_db)
+
+    assert login_result is None
+    assert sessions_db == {}
