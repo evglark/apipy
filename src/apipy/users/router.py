@@ -1,18 +1,17 @@
 from fastapi import APIRouter, HTTPException
-from apipy.models.user import User, UserCreate, UserUpdate
-from apipy.services.user_service import (
+
+from apipy.users.models import fake_db
+from apipy.users.schemas import User, UserCreate, UserUpdate
+from apipy.users.service import (
+    create_user as create_user_service,
+    delete_user as delete_user_service,
     get_all_users,
     get_user_by_id,
-    create_user as create_user_service,
-    update_user as update_user_service,
     patch_user as patch_user_service,
-    delete_user as delete_user_service,
+    update_user as update_user_service,
 )
 
 router = APIRouter(prefix="/users")
-
-# --- "база" (пока просто в памяти) ---
-fake_db = [{"id": 1, "name": "Alice"}]
 
 
 @router.get("/", response_model=list[User])
@@ -43,9 +42,7 @@ def update_user(user_id: int, user: UserCreate):
 
 @router.patch("/{user_id}", response_model=User)
 def patch_user(user_id: int, user: UserUpdate):
-    updated_user = patch_user_service(
-        user_id, user.model_dump(exclude_unset=True), fake_db
-    )
+    updated_user = patch_user_service(user_id, user.model_dump(exclude_unset=True), fake_db)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user

@@ -13,6 +13,7 @@ def create_user(data: dict, db):
     new_user = {
         "id": len(db) + 1,
         "name": data["name"],
+        "email": data["email"],
     }
     db.append(new_user)
     return new_user
@@ -24,6 +25,7 @@ def update_user(user_id: int, data: dict, db):
         return None
 
     user["name"] = data["name"]
+    user["email"] = data["email"]
     return user
 
 

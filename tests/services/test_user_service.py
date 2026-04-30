@@ -1,4 +1,4 @@
-from apipy.services.user_service import (
+from apipy.users.service import (
     get_user_by_id,
     create_user,
     update_user,
