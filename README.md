@@ -1,12 +1,10 @@
 # apipy
 
-Учебный FastAPI-проект с CRUD для пользователей и авторизацией в feature-first модуле `apipy/auth`.
-
 ## Что есть сейчас
 
-- CRUD модуль `/users`.
-- Auth модуль `/auth` (register/login/refresh/logout/magic-link/me).
-- Docker-сценарий с двумя контейнерами:
+- CRUD module `/users`.
+- Auth module `/auth` (register/login/refresh/logout/magic-link/me).
+- Docker setup with two containers:
   - `app` — FastAPI/uvicorn.
   - `db` — PostgreSQL 16.
 
@@ -25,7 +23,7 @@ deactivate
 docker compose up --build
 ```
 
-Приложение: `http://localhost:8000`  
+Application: `http://localhost:8000`
 PostgreSQL: `localhost:5432` (`apipy/apipy`, db `apipy`)
 
 ## Install dependencies
