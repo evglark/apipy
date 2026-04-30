@@ -1,5 +1,5 @@
 import pytest
-from apipy.routers.users import fake_db
+from apipy.users.models import fake_db
 
 
 @pytest.fixture
