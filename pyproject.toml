@@ -8,6 +8,8 @@ dependencies = [
     "fastapi~=0.111.0",
     "uvicorn==0.30.1",
     "pydantic==2.7.1",
+    "PyJWT==2.9.0",
+    "passlib[argon2,bcrypt]==1.7.4",
 ]
 
 [project.optional-dependencies]
