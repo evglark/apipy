@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from apipy.auth.router import router as auth_router
 from apipy.users.router import router as users_router
 
 app = FastAPI()
@@ -10,3 +11,5 @@ async def root():
 
 
 app.include_router(users_router)
+
+app.include_router(auth_router)
