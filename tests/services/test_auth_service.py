@@ -17,7 +17,7 @@ async def test_register_user_creates_record(db_session):
 async def test_login_user_returns_none_for_invalid_password(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
 
-    login_result = await login_user("student", "wrong", db_session)
+    login_result = await login_user("student@example.com", "wrong", db_session)
 
     assert login_result is None
 
@@ -27,7 +27,7 @@ async def test_login_user_returns_tokens_for_valid_credentials(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
 
     login_result = await login_user(
-        "student", "password123", db_session, device_id="test-device"
+        "student@example.com", "password123", db_session, device_id="test-device"
     )
 
     assert login_result is not None

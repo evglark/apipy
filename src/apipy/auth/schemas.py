@@ -8,20 +8,18 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    name: str
+    email: str
     password: str
     device_id: str | None = None
 
 
 class TokenPairResponse(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     session_id: str
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
     session_id: str | None = None
 
 
