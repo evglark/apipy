@@ -56,8 +56,9 @@ class MagicToken(Base):
     used: Mapped[bool] = mapped_column(default=False)
 
 
-class IPRateLimit(Base):
-    __tablename__ = "ip_rate_limits"
+class IPRateLimitAttempt(Base):
+    __tablename__ = "ip_rate_limit_attempts"
 
-    ip: Mapped[str] = mapped_column(primary_key=True)
-    attempts: Mapped[str]  # Store as comma-separated timestamps or JSON
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ip: Mapped[str] = mapped_column(index=True)
+    ts: Mapped[int] = mapped_column(BigInteger)

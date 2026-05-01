@@ -1,11 +1,11 @@
 import time
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 
 from apipy.database import get_db
-from apipy.auth.models import BlacklistedToken, IPRateLimit
+from apipy.auth.models import BlacklistedToken, IPRateLimitAttempt
 from apipy.auth.schemas import (
     LoginRequest,
     MagicLinkConsumeRequest,
@@ -51,20 +51,19 @@ def _clear_refresh_cookie(response: Response):
 
 async def _assert_ip_rate_limit(ip: str, db: AsyncSession):
     now = int(time.time())
-    result = await db.execute(select(IPRateLimit).where(IPRateLimit.ip == ip))
-    record = result.scalar_one_or_none()
-
-    if not record:
-        record = IPRateLimit(ip=ip, attempts=str(now))
-        db.add(record)
-    else:
-        attempts = [int(ts) for ts in record.attempts.split(",") if ts]
-        attempts = [ts for ts in attempts if ts > now - IP_RATE_LIMIT_WINDOW_SECONDS]
-        if len(attempts) >= IP_RATE_LIMIT_ATTEMPTS:
-            await db.commit()
-            raise HTTPException(status_code=429, detail="Too many requests from IP")
-        attempts.append(now)
-        record.attempts = ",".join(map(str, attempts))
+    db.add(IPRateLimitAttempt(ip=ip, ts=now))
+    result = await db.execute(
+        select(func.count())
+        .select_from(IPRateLimitAttempt)
+        .where(
+            IPRateLimitAttempt.ip == ip,
+            IPRateLimitAttempt.ts > now - IP_RATE_LIMIT_WINDOW_SECONDS,
+        )
+    )
+    attempts = result.scalar_one()
+    if attempts > IP_RATE_LIMIT_ATTEMPTS:
+        await db.commit()
+        raise HTTPException(status_code=429, detail="Too many requests from IP")
 
     await db.commit()
 
