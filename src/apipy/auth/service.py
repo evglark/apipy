@@ -1,6 +1,7 @@
 import time
 import uuid
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from apipy.auth.security import (
     ACCESS_TOKEN_EXPIRE_SECONDS,
@@ -14,7 +15,7 @@ from apipy.auth.security import (
     new_session_id,
     verify_password,
 )
-from apipy.users.models import User
+from apipy.users.models import User, Role
 from apipy.auth.models import (
     Credential,
     RefreshToken,
@@ -46,8 +47,18 @@ async def _find_user_by_email(email: str, db: AsyncSession):
     return result.scalar_one_or_none()
 
 
+async def _get_role_permissions(role: str, db: AsyncSession) -> list[str]:
+    result = await db.execute(
+        select(Role).options(selectinload(Role.permissions)).where(Role.name == role)
+    )
+    role_model = result.scalar_one_or_none()
+    if not role_model:
+        return []
+    return [permission.name for permission in role_model.permissions]
+
+
 def _issue_token_pair(
-    user: User, device_id: str, session_id: str | None = None
+    user: User, device_id: str, permissions: list[str], session_id: str | None = None
 ):
     session_id = session_id or new_session_id()
     effective_device_id = device_id
@@ -56,6 +67,7 @@ def _issue_token_pair(
         "user_id": user.id,
         "scope": user.role,
         "role": user.role,
+        "permissions": permissions,
         "type": "access",
         "session_id": session_id,
         "device_id": effective_device_id,
@@ -66,6 +78,7 @@ def _issue_token_pair(
         "user_id": user.id,
         "scope": "refresh",
         "role": user.role,
+        "permissions": permissions,
         "type": "refresh",
         "jti": refresh_jti,
         "session_id": session_id,
@@ -145,14 +158,15 @@ async def login_user(
             db.add(new_device)
             await db.flush()
 
-            token_pair = _issue_token_pair(user, str(new_device.id))
+            permissions = await _get_role_permissions(user.role, db)
+            token_pair = _issue_token_pair(user, str(new_device.id), permissions)
 
             new_refresh = RefreshToken(
                 jti=token_pair["refresh_jti"],
                 user_id=user.id,
                 revoked=False,
                 session_id=token_pair["session_id"],
-                device_id=device_id or "unknown",
+                device_id=str(new_device.id),
                 created_at=int(time.time()),
                 expires_at=int(time.time()) + REFRESH_TOKEN_EXPIRE_SECONDS,
             )
@@ -224,6 +238,7 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
         "user_id": payload["user_id"],
         "scope": payload.get("role", "user"),
         "role": payload.get("role", "user"),
+        "permissions": payload.get("permissions", []),
         "type": "access",
         "session_id": payload.get("session_id", ""),
         "device_id": payload.get("device_id", "unknown"),
@@ -233,6 +248,7 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
         "user_id": payload["user_id"],
         "scope": "refresh",
         "role": payload.get("role", "user"),
+        "permissions": payload.get("permissions", []),
         "type": "refresh",
         "jti": new_jti,
         "session_id": payload.get("session_id", ""),

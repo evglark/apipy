@@ -42,6 +42,8 @@ class UserClaims(BaseModel):
     sub: str
     user_id: int
     scope: str
+    role: str
+    permissions: list[str] = []
     type: str
     session_id: str
     device_id: str
