@@ -23,8 +23,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: apipy-app
+    command: sh -c "alembic upgrade head && uvicorn apipy.main:app --host 0.0.0.0 --port 8000"
     environment:
-      DATABASE_URL: postgresql://apipy:apipy@db:5432/apipy
+      DATABASE_URL: postgresql+asyncpg://apipy:apipy@db:5432/apipy
     ports:
       - "8000:8000"
     depends_on:

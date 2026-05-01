@@ -1,76 +1,107 @@
 # apipy
 
-## Что есть сейчас
+A modern FastAPI backend boilerplate with PostgreSQL, SQLAlchemy 2.0 (Async), and Alembic migrations.
 
-- CRUD module `/users`.
-- Auth module `/auth` (register/login/refresh/logout/magic-link/me).
-- Docker setup with two containers:
-  - `app` — FastAPI/uvicorn.
-  - `db` — PostgreSQL 16.
+## 🚀 Quick Start
 
-## Run project locally (venv)
+### 1. Initial Setup (Prerequisites)
+
+Before running the project, you must configure your environment variables:
+
+1. **Clone the repository** and enter the directory.
+2. **Initialize Environment**:
+   Create your `.env` file and generate a secure secret key automatically:
+   ```bash
+   python3 scripts/generate_secret.py
+   ```
+3. **Verify Settings**: Open `.env` if you need to change your database credentials (defaults work for Docker).
+
+---
+
+## Option 1: Running with Docker (Recommended)
+
+This is the fastest way to get the project running. It handles the database, application, and migrations automatically.
 
 ```bash
-source .venv/bin/activate
+docker-compose up --build
+```
+
+- **Application**: [http://localhost:8000](http://localhost:8000)
+- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Database**: PostgreSQL runs on `localhost:5432`
+
+*Note: Migrations run automatically on startup.*
+
+---
+
+## Option 2: Local Development Setup
+
+Use this method if you want to run the application directly on your machine for faster debugging and hot-reloading.
+
+### 1. Start the Database only
+You still need a database. The easiest way is to run only the Postgres container from our docker-compose:
+
+```bash
+docker-compose up -d db
+```
+
+### 2. Set up Python Environment
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-uvicorn apipy.main:app --reload
-deactivate
+#deactivate
 ```
 
-## Run with Docker (app + postgres in separate containers)
-
+### 3. Run Migrations
 ```bash
-docker compose up --build
+alembic upgrade head
 ```
 
-Application: `http://localhost:8000`
-PostgreSQL: `localhost:5432` (`apipy/apipy`, db `apipy`)
-
-## Install dependencies
-
+### 4. Start Application
 ```bash
-pip install -e ".[dev]"
+PYTHONPATH=src uvicorn apipy.main:app --reload
 ```
 
-## Check style
+---
 
+## 🧪 Testing & Quality Control
+
+You can run these commands locally (if `.venv` is set up) or directly inside the Docker container.
+
+### Running Tests
 ```bash
-ruff format --check .
-ruff check .
+# Locally
+pytest
+
+# Inside Docker
+docker-compose exec app pytest
 ```
 
-## Format and Lint code
-
+### Coverage Report
 ```bash
+# Locally
+pytest --cov=src
+
+# Inside Docker
+docker-compose exec app pytest --cov=src
+```
+
+### Linting & Formatting
+```bash
+# Locally
 ruff format .
 ruff check . --fix
+
+# Inside Docker
+docker-compose exec app ruff format .
+docker-compose exec app ruff check . --fix
 ```
 
-## Run tests
+---
 
-```bash
-PYTHONPATH=src pytest
-PYTHONPATH=src pytest -q --maxfail=1
-```
-
-## Environment setup (English)
-
-1. Copy the example file:
-
-```bash
-cp .env.example .env
-```
-
-2. Open `.env` and set real secrets (never commit `.env`):
-   - `API_SECRET_KEY` for HS algorithms, or
-   - `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` for RS/ES algorithms.
-
-3. Keep timing/security variables configured as needed:
-   - `ACCESS_TOKEN_EXPIRE_SECONDS`
-   - `REFRESH_TOKEN_EXPIRE_SECONDS`
-   - `MAX_LOGIN_ATTEMPTS`
-   - `LOGIN_BLOCK_SECONDS`
-   - `IP_RATE_LIMIT_ATTEMPTS`
-   - `IP_RATE_LIMIT_WINDOW_SECONDS`
-
-4. Run app with env loaded (Docker Compose or local shell).
+## 🛠 Project Structure
+- `src/apipy/`: Main application source code.
+- `tests/`: Pytest suite.
+- `migrations/`: Alembic database migration scripts.
+- `docker-compose.yml`: Infrastructure configuration.
