@@ -2,7 +2,6 @@ import time
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security import OAuth2PasswordBearer
 
 from apipy.database import get_db
 from apipy.auth.models import BlacklistedToken, IPRateLimitAttempt
@@ -29,9 +28,9 @@ from apipy.auth.service import (
     refresh_access_token,
     register_user,
 )
+from apipy.auth.deps import oauth2_scheme
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 REFRESH_COOKIE_KEY = "refresh_token"
 
 
@@ -79,7 +78,7 @@ async def _assert_ip_rate_limit(ip: str, db: AsyncSession):
 @router.post("/register", response_model=RegisterResponse)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
     created_user = await register_user(
-        payload.name, payload.email, payload.password, db
+        payload.name, payload.email, payload.password, db, payload.role
     )
     if not created_user:
         raise HTTPException(status_code=400, detail="User already exists")

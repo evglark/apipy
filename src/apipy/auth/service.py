@@ -54,7 +54,8 @@ def _issue_token_pair(
     access_claims = {
         "sub": user.name,
         "user_id": user.id,
-        "scope": "access",
+        "scope": user.role,
+        "role": user.role,
         "type": "access",
         "session_id": session_id,
         "device_id": effective_device_id,
@@ -64,6 +65,7 @@ def _issue_token_pair(
         "sub": user.name,
         "user_id": user.id,
         "scope": "refresh",
+        "role": user.role,
         "type": "refresh",
         "jti": refresh_jti,
         "session_id": session_id,
@@ -220,7 +222,8 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
     access_claims = {
         "sub": payload["sub"],
         "user_id": payload["user_id"],
-        "scope": "access",
+        "scope": payload.get("role", "user"),
+        "role": payload.get("role", "user"),
         "type": "access",
         "session_id": payload.get("session_id", ""),
         "device_id": payload.get("device_id", "unknown"),
@@ -229,6 +232,7 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
         "sub": payload["sub"],
         "user_id": payload["user_id"],
         "scope": "refresh",
+        "role": payload.get("role", "user"),
         "type": "refresh",
         "jti": new_jti,
         "session_id": payload.get("session_id", ""),
@@ -290,14 +294,16 @@ async def logout_user(
     return False
 
 
-async def register_user(name: str, email: str, password: str, db: AsyncSession):
+async def register_user(
+    name: str, email: str, password: str, db: AsyncSession, role: str = "user"
+):
     user = await _find_user_by_name(name, db) or await _find_user_by_email(email, db)
     if user:
         await _log_event(db, "register_failed", username=name, reason="exists")
         await db.commit()
         return None
 
-    new_user = User(name=name, email=email)
+    new_user = User(name=name, email=email, role=role)
     db.add(new_user)
     await db.flush()  # Get ID
 
