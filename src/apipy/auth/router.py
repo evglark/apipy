@@ -28,7 +28,7 @@ from apipy.auth.service import (
     refresh_access_token,
     register_user,
 )
-from apipy.auth.deps import oauth2_scheme
+from apipy.auth.deps import oauth2_scheme, require_role
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 REFRESH_COOKIE_KEY = "refresh_token"
@@ -176,7 +176,7 @@ async def login_by_magic_link(
 
 
 @router.get("/me")
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_me(token: str = Depends(oauth2_scheme)):
     payload = decode_jwt(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(
@@ -190,3 +190,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         "session_id": payload.get("session_id"),
         "device_id": payload.get("device_id"),
     }
+
+
+@router.get("/admin")
+async def admin_only(_=Depends(require_role("admin"))):
+    return {"status": "ok"}

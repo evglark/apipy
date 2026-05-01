@@ -13,7 +13,7 @@ from apipy.users.service import (
 from apipy.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
-from apipy.auth.deps import require_roles
+from apipy.auth.deps import require_permission, require_roles
 
 router = APIRouter(prefix="/users")
 
@@ -42,7 +42,7 @@ async def get_user(
 async def create_user(
     user: UserCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_permission("create_user")),
 ):
     return await create_user_service(user.model_dump(), db)
 
@@ -79,7 +79,7 @@ async def patch_user(
 async def delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_roles("admin")),
+    _=Depends(require_permission("delete_user")),
 ):
     user = await delete_user_service(user_id, db)
     if not user:
