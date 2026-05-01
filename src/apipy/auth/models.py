@@ -11,6 +11,16 @@ class Credential(Base):
     password_hash: Mapped[str]
 
 
+class Device(Base):
+    __tablename__ = "devices"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_agent: Mapped[str]
+    ip: Mapped[str | None] = mapped_column(nullable=True)
+    created_at: Mapped[int] = mapped_column(BigInteger)
+
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 

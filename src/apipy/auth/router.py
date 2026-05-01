@@ -92,7 +92,8 @@ async def login(
         payload.email,
         payload.password,
         db,
-        payload.device_id,
+        request.headers.get("user-agent"),
+        request.client.host if request.client else None,
     )
     if login_result and "error" in login_result:
         raise HTTPException(status_code=429, detail=login_result["error"])
