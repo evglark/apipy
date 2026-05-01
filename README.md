@@ -52,3 +52,25 @@ ruff check . --fix
 PYTHONPATH=src pytest
 PYTHONPATH=src pytest -q --maxfail=1
 ```
+
+## Environment setup (English)
+
+1. Copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+2. Open `.env` and set real secrets (never commit `.env`):
+   - `API_SECRET_KEY` for HS algorithms, or
+   - `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` for RS/ES algorithms.
+
+3. Keep timing/security variables configured as needed:
+   - `ACCESS_TOKEN_EXPIRE_SECONDS`
+   - `REFRESH_TOKEN_EXPIRE_SECONDS`
+   - `MAX_LOGIN_ATTEMPTS`
+   - `LOGIN_BLOCK_SECONDS`
+   - `IP_RATE_LIMIT_ATTEMPTS`
+   - `IP_RATE_LIMIT_WINDOW_SECONDS`
+
+4. Run app with env loaded (Docker Compose or local shell).
