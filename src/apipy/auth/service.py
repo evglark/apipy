@@ -21,6 +21,7 @@ from apipy.auth.models import (
     LoginAttempt,
     SecurityEvent,
     MagicToken,
+    Device,
 )
 
 
@@ -45,10 +46,10 @@ async def _find_user_by_email(email: str, db: AsyncSession):
 
 
 def _issue_token_pair(
-    user: User, device_id: str | None = None, session_id: str | None = None
+    user: User, device_id: str, session_id: str | None = None
 ):
     session_id = session_id or new_session_id()
-    effective_device_id = device_id or "unknown"
+    effective_device_id = device_id
     access_claims = {
         "sub": user.name,
         "user_id": user.id,
@@ -73,6 +74,7 @@ def _issue_token_pair(
         "token_type": "bearer",
         "session_id": session_id,
         "refresh_jti": refresh_jti,
+        "device_id": effective_device_id,
     }
 
 
@@ -107,7 +109,8 @@ async def login_user(
     email: str,
     password: str,
     db: AsyncSession,
-    device_id: str | None = None,
+    user_agent: str | None = None,
+    ip: str | None = None,
 ):
     if await _is_blocked(email, db):
         await _log_event(db, "login_blocked", email=email)
@@ -127,14 +130,23 @@ async def login_user(
     for cred in credentials:
         if verify_password(password, cred.password_hash):
             await _reset_failed_attempts(email, db)
-            token_pair = _issue_token_pair(user, device_id)
+            new_device = Device(
+                user_id=user.id,
+                user_agent=user_agent or "unknown",
+                ip=ip,
+                created_at=int(time.time()),
+            )
+            db.add(new_device)
+            await db.flush()
+
+            token_pair = _issue_token_pair(user, str(new_device.id))
 
             new_refresh = RefreshToken(
                 jti=token_pair["refresh_jti"],
                 user_id=user.id,
                 revoked=False,
                 session_id=token_pair["session_id"],
-                device_id=device_id or "unknown",
+                device_id=token_pair["device_id"],
             )
             db.add(new_refresh)
             await _log_event(

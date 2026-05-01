@@ -10,7 +10,6 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
-    device_id: str | None = None
 
 
 class TokenPairResponse(BaseModel):
