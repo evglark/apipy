@@ -18,6 +18,7 @@ class RefreshToken(Base):
     jti: Mapped[str] = mapped_column(unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     revoked: Mapped[bool] = mapped_column(default=False)
+    reuse_detected: Mapped[bool] = mapped_column(default=False)
     session_id: Mapped[str]
     device_id: Mapped[str]
 
