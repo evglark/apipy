@@ -76,20 +76,20 @@ def _issue_token_pair(
     }
 
 
-async def _is_blocked(name: str, db: AsyncSession):
-    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == name))
+async def _is_blocked(email: str, db: AsyncSession):
+    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == email))
     record = result.scalar_one_or_none()
     if not record:
         return False
     return record.blocked_until > int(time.time())
 
 
-async def _register_failed_attempt(name: str, db: AsyncSession):
+async def _register_failed_attempt(email: str, db: AsyncSession):
     now = int(time.time())
-    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == name))
+    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == email))
     record = result.scalar_one_or_none()
     if not record:
-        record = LoginAttempt(username=name, count=1)
+        record = LoginAttempt(username=email, count=1)
         db.add(record)
     else:
         record.count += 1
@@ -98,26 +98,26 @@ async def _register_failed_attempt(name: str, db: AsyncSession):
     await db.commit()
 
 
-async def _reset_failed_attempts(name: str, db: AsyncSession):
-    await db.execute(delete(LoginAttempt).where(LoginAttempt.username == name))
+async def _reset_failed_attempts(email: str, db: AsyncSession):
+    await db.execute(delete(LoginAttempt).where(LoginAttempt.username == email))
     await db.commit()
 
 
 async def login_user(
-    name: str,
+    email: str,
     password: str,
     db: AsyncSession,
     device_id: str | None = None,
 ):
-    if await _is_blocked(name, db):
-        await _log_event(db, "login_blocked", username=name)
+    if await _is_blocked(email, db):
+        await _log_event(db, "login_blocked", email=email)
         await db.commit()
         return {"error": "Too many login attempts. Try again later."}
 
-    user = await _find_user_by_name(name, db)
+    user = await _find_user_by_email(email, db)
     if not user:
-        await _register_failed_attempt(name, db)
-        await _log_event(db, "login_failed", username=name, reason="user_not_found")
+        await _register_failed_attempt(email, db)
+        await _log_event(db, "login_failed", email=email, reason="user_not_found")
         await db.commit()
         return None
 
@@ -126,7 +126,7 @@ async def login_user(
 
     for cred in credentials:
         if verify_password(password, cred.password_hash):
-            await _reset_failed_attempts(name, db)
+            await _reset_failed_attempts(email, db)
             token_pair = _issue_token_pair(user, device_id)
 
             new_refresh = RefreshToken(
@@ -146,8 +146,8 @@ async def login_user(
             await db.commit()
             return {k: v for k, v in token_pair.items() if k != "refresh_jti"}
 
-    await _register_failed_attempt(name, db)
-    await _log_event(db, "login_failed", username=name, reason="bad_password")
+    await _register_failed_attempt(email, db)
+    await _log_event(db, "login_failed", email=email, reason="bad_password")
     await db.commit()
     return None
 

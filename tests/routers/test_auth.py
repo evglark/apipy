@@ -55,22 +55,23 @@ async def test_login_success(client):
 
     response = await client.post(
         "/auth/login",
-        json={"name": "student", "password": "password123"},
+        json={"email": "student@example.com", "password": "password123"},
     )
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["token_type"] == "bearer"
     assert "access_token" in payload
-    assert "refresh_token" in payload
+    assert "refresh_token" not in payload
     assert "session_id" in payload
+    assert "refresh_token" in response.cookies
 
 
 @pytest.mark.asyncio
 async def test_login_invalid_credentials_returns_401(client):
     response = await client.post(
         "/auth/login",
-        json={"name": "student", "password": "wrongpass"},
+        json={"email": "student@example.com", "password": "wrongpass"},
     )
 
     assert response.status_code == 401

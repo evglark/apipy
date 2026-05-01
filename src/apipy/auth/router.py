@@ -1,7 +1,7 @@
 import time
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 
 from apipy.database import get_db
@@ -31,6 +31,22 @@ from apipy.auth.service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+REFRESH_COOKIE_KEY = "refresh_token"
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str):
+    response.set_cookie(
+        key=REFRESH_COOKIE_KEY,
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        path="/auth",
+    )
+
+
+def _clear_refresh_cookie(response: Response):
+    response.delete_cookie(key=REFRESH_COOKIE_KEY, path="/auth")
 
 
 async def _assert_ip_rate_limit(ip: str, db: AsyncSession):
@@ -65,13 +81,16 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 @router.post("/login", response_model=TokenPairResponse)
 async def login(
-    payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)
+    payload: LoginRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     await _assert_ip_rate_limit(
         request.client.host if request.client else "unknown", db
     )
     login_result = await login_user(
-        payload.name,
+        payload.email,
         payload.password,
         db,
         payload.device_id,
@@ -80,29 +99,48 @@ async def login(
         raise HTTPException(status_code=429, detail=login_result["error"])
     if not login_result:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return login_result
+    _set_refresh_cookie(response, login_result["refresh_token"])
+    return {k: v for k, v in login_result.items() if k != "refresh_token"}
 
 
 @router.post("/refresh", response_model=TokenPairResponse)
-async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def refresh(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.cookies.get(REFRESH_COOKIE_KEY)
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
     # Check blacklist
     result = await db.execute(
-        select(BlacklistedToken).where(BlacklistedToken.token == payload.refresh_token)
+        select(BlacklistedToken).where(BlacklistedToken.token == refresh_token)
     )
     if result.scalar_one_or_none():
         raise HTTPException(status_code=401, detail="Token revoked")
 
-    refreshed = await refresh_access_token(payload.refresh_token, db)
+    refreshed = await refresh_access_token(refresh_token, db)
     if not refreshed:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
-    return refreshed
+    _set_refresh_cookie(response, refreshed["refresh_token"])
+    return {k: v for k, v in refreshed.items() if k != "refresh_token"}
 
 
 @router.post("/logout")
-async def logout(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    ok = await logout_user(payload.refresh_token, db, payload.session_id)
+async def logout(
+    payload: RefreshRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.cookies.get(REFRESH_COOKIE_KEY)
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
+    ok = await logout_user(refresh_token, db, payload.session_id)
     if not ok:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+    _clear_refresh_cookie(response)
     return {"status": "logged out"}
 
 
@@ -118,12 +156,15 @@ async def request_magic_link(
 
 @router.post("/magic-link/consume", response_model=TokenPairResponse)
 async def login_by_magic_link(
-    payload: MagicLinkConsumeRequest, db: AsyncSession = Depends(get_db)
+    payload: MagicLinkConsumeRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     token_pair = await consume_magic_link(payload.token, db)
     if not token_pair:
         raise HTTPException(status_code=401, detail="Invalid or expired magic link")
-    return token_pair
+    _set_refresh_cookie(response, token_pair["refresh_token"])
+    return {k: v for k, v in token_pair.items() if k != "refresh_token"}
 
 
 @router.get("/me")
