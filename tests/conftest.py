@@ -23,6 +23,7 @@ async def clear_db(engine):
         tables = [
             "ip_rate_limit_attempts",
             "magic_tokens",
+            "email_verification_tokens",
             "security_events",
             "login_attempts",
             "token_blacklist",
