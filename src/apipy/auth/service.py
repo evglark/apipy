@@ -163,8 +163,25 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
     result = await db.execute(select(RefreshToken).where(RefreshToken.jti == jti))
     token_record = result.scalar_one_or_none()
 
-    if not token_record or token_record.revoked:
+    if not token_record:
         await _log_event(db, "refresh_failed", reason="revoked_or_missing", jti=jti)
+        await db.commit()
+        return None
+    if token_record.revoked:
+        token_record.reuse_detected = True
+        session_id = token_record.session_id
+        session_result = await db.execute(
+            select(RefreshToken).where(RefreshToken.session_id == session_id)
+        )
+        session_tokens = session_result.scalars().all()
+        for session_token in session_tokens:
+            session_token.revoked = True
+        await _log_event(
+            db,
+            "refresh_token_reuse_detected",
+            user_id=token_record.user_id,
+            session_id=session_id,
+        )
         await db.commit()
         return None
 
