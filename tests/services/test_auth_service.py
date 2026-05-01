@@ -27,7 +27,7 @@ async def test_login_user_returns_tokens_for_valid_credentials(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
 
     login_result = await login_user(
-        "student@example.com", "password123", db_session, device_id="test-device"
+        "student@example.com", "password123", db_session
     )
 
     assert login_result is not None
