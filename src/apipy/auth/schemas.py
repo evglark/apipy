@@ -38,6 +38,10 @@ class MagicLinkConsumeRequest(BaseModel):
     token: str
 
 
+class EmailVerificationResendRequest(BaseModel):
+    email: str
+
+
 class UserClaims(BaseModel):
     sub: str
     user_id: int

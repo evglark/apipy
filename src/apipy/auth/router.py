@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from apipy.database import get_db
 from apipy.auth.models import BlacklistedToken, IPRateLimitAttempt
 from apipy.auth.schemas import (
+    EmailVerificationResendRequest,
     LoginRequest,
     MagicLinkConsumeRequest,
     MagicLinkRequest,
@@ -27,6 +28,8 @@ from apipy.auth.service import (
     logout_user,
     refresh_access_token,
     register_user,
+    resend_verification_email,
+    verify_email_token,
 )
 from apipy.auth.deps import oauth2_scheme, require_role
 
@@ -103,7 +106,10 @@ async def login(
         request.client.host if request.client else None,
     )
     if login_result and "error" in login_result:
-        raise HTTPException(status_code=429, detail=login_result["error"])
+        raise HTTPException(
+            status_code=login_result.get("status_code", 429),
+            detail=login_result["error"],
+        )
     if not login_result:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     _set_refresh_cookie(response, login_result["refresh_token"])
@@ -160,6 +166,22 @@ async def request_magic_link(
     if not magic_link:
         raise HTTPException(status_code=404, detail="User not found")
     return magic_link
+
+
+@router.get("/verify-email")
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    verified = await verify_email_token(token, db)
+    if not verified:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    return {"status": "success"}
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    payload: EmailVerificationResendRequest, db: AsyncSession = Depends(get_db)
+):
+    await resend_verification_email(payload.email, db)
+    return {"status": "ok"}
 
 
 @router.post("/magic-link/consume", response_model=TokenPairResponse)

@@ -23,8 +23,11 @@ from apipy.auth.models import (
     LoginAttempt,
     SecurityEvent,
     MagicToken,
+    EmailVerificationToken,
     Device,
 )
+
+EMAIL_VERIFICATION_TTL_SECONDS = 24 * 60 * 60
 
 
 async def _log_event(
@@ -142,6 +145,10 @@ async def login_user(
         await _log_event(db, "login_failed", email=email, reason="user_not_found")
         await db.commit()
         return None
+    if not user.email_verified:
+        await _log_event(db, "login_failed", email=email, reason="email_not_verified")
+        await db.commit()
+        return {"error": "Email is not verified", "status_code": 403}
 
     result = await db.execute(select(Credential).where(Credential.user_id == user.id))
     credentials = result.scalars().all()
@@ -325,11 +332,61 @@ async def register_user(
 
     new_cred = Credential(user_id=new_user.id, password_hash=hash_password(password))
     db.add(new_cred)
+    db.add(
+        EmailVerificationToken(
+            token=str(uuid.uuid4()),
+            user_id=new_user.id,
+            exp=int(time.time()) + EMAIL_VERIFICATION_TTL_SECONDS,
+            used=False,
+        )
+    )
 
     await _log_event(db, "register_success", user_id=new_user.id)
     await db.commit()
     await db.refresh(new_user)
     return new_user
+
+
+async def verify_email_token(token: str, db: AsyncSession):
+    now = int(time.time())
+    result = await db.execute(
+        select(EmailVerificationToken).where(EmailVerificationToken.token == token)
+    )
+    record = result.scalar_one_or_none()
+    if not record or record.used or record.exp < now:
+        await _log_event(db, "email_verification_failed", reason="invalid_or_expired")
+        await db.commit()
+        return False
+
+    result = await db.execute(select(User).where(User.id == record.user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        await db.commit()
+        return False
+
+    user.email_verified = True
+    record.used = True
+    await _log_event(db, "email_verified", user_id=user.id)
+    await db.commit()
+    return True
+
+
+async def resend_verification_email(email: str, db: AsyncSession):
+    user = await _find_user_by_email(email, db)
+    if user and not user.email_verified:
+        db.add(
+            EmailVerificationToken(
+                token=str(uuid.uuid4()),
+                user_id=user.id,
+                exp=int(time.time()) + EMAIL_VERIFICATION_TTL_SECONDS,
+                used=False,
+            )
+        )
+        await _log_event(db, "email_verification_resent", user_id=user.id)
+    else:
+        await _log_event(db, "email_verification_resent", email=email, user_exists=False)
+    await db.commit()
+    return {"status": "ok"}
 
 
 async def create_magic_link(email: str, db: AsyncSession, ttl_seconds: int = 600):

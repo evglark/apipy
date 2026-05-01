@@ -1,5 +1,7 @@
 import pytest
 from apipy.auth.service import login_user, register_user
+from apipy.users.models import User
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio
@@ -25,6 +27,12 @@ async def test_login_user_returns_none_for_invalid_password(db_session):
 @pytest.mark.asyncio
 async def test_login_user_returns_tokens_for_valid_credentials(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
+    result = await db_session.execute(
+        select(User).where(User.email == "student@example.com")
+    )
+    user = result.scalar_one()
+    user.email_verified = True
+    await db_session.commit()
 
     login_result = await login_user(
         "student@example.com", "password123", db_session

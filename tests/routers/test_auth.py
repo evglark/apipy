@@ -43,7 +43,7 @@ async def test_register_duplicate_returns_400(client):
 
 
 @pytest.mark.asyncio
-async def test_login_success(client):
+async def test_login_requires_verified_email(client):
     await client.post(
         "/auth/register",
         json={
@@ -58,13 +58,8 @@ async def test_login_success(client):
         json={"email": "student@example.com", "password": "password123"},
     )
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["token_type"] == "bearer"
-    assert "access_token" in payload
-    assert "refresh_token" not in payload
-    assert "session_id" in payload
-    assert "refresh_token" in response.cookies
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Email is not verified"}
 
 
 @pytest.mark.asyncio

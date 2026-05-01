@@ -70,6 +70,15 @@ class MagicToken(Base):
     used: Mapped[bool] = mapped_column(default=False)
 
 
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    token: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    exp: Mapped[int] = mapped_column(BigInteger)
+    used: Mapped[bool] = mapped_column(default=False)
+
+
 class IPRateLimitAttempt(Base):
     __tablename__ = "ip_rate_limit_attempts"
 

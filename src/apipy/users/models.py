@@ -39,3 +39,4 @@ class User(Base):
     name: Mapped[str] = mapped_column(unique=True, index=True)
     email: Mapped[str] = mapped_column(unique=True, index=True)
     role: Mapped[str] = mapped_column(ForeignKey("roles.name"), default="user")
+    email_verified: Mapped[bool] = mapped_column(default=False)
