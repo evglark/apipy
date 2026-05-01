@@ -21,7 +21,7 @@ def engine():
 async def clear_db(engine):
     async with engine.begin() as conn:
         tables = [
-            "ip_rate_limits",
+            "ip_rate_limit_attempts",
             "magic_tokens",
             "security_events",
             "login_attempts",
