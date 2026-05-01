@@ -93,9 +93,12 @@ async def _register_failed_attempt(email: str, db: AsyncSession):
     record = result.scalar_one_or_none()
     if not record:
         record = LoginAttempt(username=email, count=1)
+        record.created_at = now
+        record.expires_at = now + LOGIN_BLOCK_SECONDS
         db.add(record)
     else:
         record.count += 1
+        record.expires_at = now + LOGIN_BLOCK_SECONDS
         if record.count >= MAX_LOGIN_ATTEMPTS:
             record.blocked_until = now + LOGIN_BLOCK_SECONDS
     await db.commit()
@@ -147,7 +150,9 @@ async def login_user(
                 user_id=user.id,
                 revoked=False,
                 session_id=token_pair["session_id"],
-                device_id=token_pair["device_id"],
+                device_id=device_id or "unknown",
+                created_at=int(time.time()),
+                expires_at=int(time.time()) + REFRESH_TOKEN_EXPIRE_SECONDS,
             )
             db.add(new_refresh)
             await _log_event(
@@ -207,6 +212,8 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession):
         revoked=False,
         session_id=payload.get("session_id"),
         device_id=payload.get("device_id") or "unknown",
+        created_at=int(time.time()),
+        expires_at=int(time.time()) + REFRESH_TOKEN_EXPIRE_SECONDS,
     )
     db.add(new_refresh)
 
@@ -346,6 +353,8 @@ async def consume_magic_link(token: str, db: AsyncSession):
         revoked=False,
         session_id=token_pair["session_id"],
         device_id="magic-link",
+        created_at=int(time.time()),
+        expires_at=int(time.time()) + REFRESH_TOKEN_EXPIRE_SECONDS,
     )
     db.add(new_refresh)
     await _log_event(

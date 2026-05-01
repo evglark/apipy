@@ -31,6 +31,8 @@ class RefreshToken(Base):
     reuse_detected: Mapped[bool] = mapped_column(default=False)
     session_id: Mapped[str]
     device_id: Mapped[str]
+    created_at: Mapped[int] = mapped_column(BigInteger)
+    expires_at: Mapped[int] = mapped_column(BigInteger)
 
 
 class BlacklistedToken(Base):
@@ -45,6 +47,8 @@ class LoginAttempt(Base):
     username: Mapped[str] = mapped_column(primary_key=True)
     count: Mapped[int] = mapped_column(default=0)
     blocked_until: Mapped[int] = mapped_column(BigInteger, default=0)
+    created_at: Mapped[int] = mapped_column(BigInteger)
+    expires_at: Mapped[int] = mapped_column(BigInteger)
 
 
 class SecurityEvent(Base):
@@ -72,3 +76,5 @@ class IPRateLimitAttempt(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     ip: Mapped[str] = mapped_column(index=True)
     ts: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[int] = mapped_column(BigInteger)
+    expires_at: Mapped[int] = mapped_column(BigInteger)

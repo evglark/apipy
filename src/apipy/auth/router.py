@@ -52,7 +52,14 @@ def _clear_refresh_cookie(response: Response):
 
 async def _assert_ip_rate_limit(ip: str, db: AsyncSession):
     now = int(time.time())
-    db.add(IPRateLimitAttempt(ip=ip, ts=now))
+    db.add(
+        IPRateLimitAttempt(
+            ip=ip,
+            ts=now,
+            created_at=now,
+            expires_at=now + IP_RATE_LIMIT_WINDOW_SECONDS,
+        )
+    )
     result = await db.execute(
         select(func.count())
         .select_from(IPRateLimitAttempt)
