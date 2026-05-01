@@ -13,17 +13,25 @@ from apipy.users.service import (
 from apipy.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
+from apipy.auth.deps import require_roles
 
 router = APIRouter(prefix="/users")
 
 
 @router.get("/", response_model=list[User])
-async def get_users(db: AsyncSession = Depends(get_db)):
+async def get_users(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin", "user", "read_only")),
+):
     return await get_all_users(db)
 
 
 @router.get("/{user_id}", response_model=User)
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin", "user", "read_only")),
+):
     user = await get_user_by_id(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -31,13 +39,20 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=User)
-async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+async def create_user(
+    user: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin")),
+):
     return await create_user_service(user.model_dump(), db)
 
 
 @router.put("/{user_id}", response_model=User)
 async def update_user(
-    user_id: int, user: UserCreate, db: AsyncSession = Depends(get_db)
+    user_id: int,
+    user: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin", "user")),
 ):
     updated_user = await update_user_service(user_id, user.model_dump(), db)
     if not updated_user:
@@ -47,7 +62,10 @@ async def update_user(
 
 @router.patch("/{user_id}", response_model=User)
 async def patch_user(
-    user_id: int, user: UserUpdate, db: AsyncSession = Depends(get_db)
+    user_id: int,
+    user: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin", "user")),
 ):
     updated_user = await patch_user_service(
         user_id, user.model_dump(exclude_unset=True), db
@@ -58,7 +76,11 @@ async def patch_user(
 
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_roles("admin")),
+):
     user = await delete_user_service(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

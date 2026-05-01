@@ -17,6 +17,7 @@ async def create_user(data: dict, db: AsyncSession):
     new_user = User(
         name=data["name"],
         email=data["email"],
+        role=data.get("role", "user"),
     )
     db.add(new_user)
     await db.commit()
@@ -31,6 +32,7 @@ async def update_user(user_id: int, data: dict, db: AsyncSession):
 
     user.name = data["name"]
     user.email = data["email"]
+    user.role = data.get("role", user.role)
     await db.commit()
     await db.refresh(user)
     return user

@@ -5,6 +5,7 @@ class RegisterRequest(BaseModel):
     name: str
     email: str
     password: str
+    role: str = "user"
 
 
 class LoginRequest(BaseModel):
@@ -27,6 +28,7 @@ class RegisterResponse(BaseModel):
     id: int
     name: str
     email: str
+    role: str
 
 
 class MagicLinkRequest(BaseModel):
