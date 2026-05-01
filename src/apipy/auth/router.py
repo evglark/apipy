@@ -168,18 +168,7 @@ async def login_by_magic_link(
 
 
 @router.get("/me")
-async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
-):
-    # Check blacklist
-    result = await db.execute(
-        select(BlacklistedToken).where(BlacklistedToken.token == token)
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
-        )
-
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     payload = decode_jwt(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(
