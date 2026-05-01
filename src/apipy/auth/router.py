@@ -19,6 +19,7 @@ from apipy.auth.security import (
     IP_RATE_LIMIT_ATTEMPTS,
     IP_RATE_LIMIT_WINDOW_SECONDS,
     decode_jwt,
+    hash_token,
 )
 from apipy.auth.service import (
     consume_magic_link,
@@ -112,8 +113,9 @@ async def refresh(
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token missing")
     # Check blacklist
+    refresh_token_hash = hash_token(refresh_token)
     result = await db.execute(
-        select(BlacklistedToken).where(BlacklistedToken.token == refresh_token)
+        select(BlacklistedToken).where(BlacklistedToken.token == refresh_token_hash)
     )
     if result.scalar_one_or_none():
         raise HTTPException(status_code=401, detail="Token revoked")

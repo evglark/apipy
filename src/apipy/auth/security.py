@@ -1,5 +1,6 @@
 import time
 import uuid
+import hashlib
 from os import getenv
 
 from passlib.context import CryptContext
@@ -64,3 +65,7 @@ def decode_jwt(token: str) -> dict | None:
 
 def new_session_id() -> str:
     return str(uuid.uuid4())
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()

@@ -9,6 +9,7 @@ from apipy.auth.security import (
     REFRESH_TOKEN_EXPIRE_SECONDS,
     create_jwt,
     decode_jwt,
+    hash_token,
     hash_password,
     new_session_id,
     verify_password,
@@ -236,7 +237,7 @@ async def logout_user(
         await db.commit()
         return False
 
-    db.add(BlacklistedToken(token=refresh_token))
+    db.add(BlacklistedToken(token=hash_token(refresh_token)))
 
     if session_id:
         result = await db.execute(
