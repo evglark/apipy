@@ -5,12 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apipy.auth.models import Credential, EmailVerificationToken
-from apipy.auth.security import hash_password
+from apipy.auth.utils.security import hash_password
+from apipy.auth.constants import EMAIL_VERIFICATION_TTL_SECONDS
 from apipy.auth.utils.events import _log_event
 from apipy.auth.utils.queries import _find_user_by_email, _find_user_by_name
 from apipy.users.models import User
-
-EMAIL_VERIFICATION_TTL_SECONDS = 24 * 60 * 60
 
 
 async def register_user(
@@ -80,6 +79,8 @@ async def resend_verification_email(email: str, db: AsyncSession):
         )
         await _log_event(db, "email_verification_resent", user_id=user.id)
     else:
-        await _log_event(db, "email_verification_resent", email=email, user_exists=False)
+        await _log_event(
+            db, "email_verification_resent", email=email, user_exists=False
+        )
     await db.commit()
     return {"status": "ok"}

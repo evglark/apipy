@@ -1,8 +1,10 @@
 import uuid
 
-from apipy.auth.security import (
+from apipy.auth.constants import (
     ACCESS_TOKEN_EXPIRE_SECONDS,
     REFRESH_TOKEN_EXPIRE_SECONDS,
+)
+from apipy.auth.utils.security import (
     create_jwt,
     new_session_id,
 )

@@ -5,10 +5,11 @@ from sqlalchemy import delete
 
 from apipy.auth.models import IPRateLimitAttempt, LoginAttempt, RefreshToken
 from apipy.database import async_session
-
-CLEANUP_INTERVAL_SECONDS = 3600
-REVOKED_REFRESH_TOKEN_RETENTION_SECONDS = 7 * 24 * 3600
-IP_RATE_LIMIT_RETENTION_SECONDS = 24 * 3600
+from apipy.auth.constants import (
+    CLEANUP_INTERVAL_SECONDS,
+    REVOKED_REFRESH_TOKEN_RETENTION_SECONDS,
+    IP_RATE_LIMIT_RETENTION_SECONDS,
+)
 
 
 async def run_cleanup_once() -> None:

@@ -34,6 +34,27 @@ async def clear_db(engine):
         # Single TRUNCATE call for all tables is more efficient and avoids multiple operations
         tables_str = ", ".join(tables)
         await conn.execute(text(f"TRUNCATE TABLE {tables_str} CASCADE"))
+
+        # Seed basic roles and permissions required for authorization tests
+        await conn.execute(
+            text(
+                "INSERT INTO roles (name) VALUES ('user'), ('admin') ON CONFLICT DO NOTHING"
+            )
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO permissions (name) VALUES ('create_user'), ('delete_user') ON CONFLICT DO NOTHING"
+            )
+        )
+
+        # Link admin role to permissions
+        await conn.execute(
+            text("""
+            INSERT INTO role_permissions (role, permission_id) 
+            SELECT 'admin', id FROM permissions WHERE name IN ('create_user', 'delete_user')
+            ON CONFLICT DO NOTHING
+        """)
+        )
     yield
 
 

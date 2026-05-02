@@ -1,0 +1,30 @@
+from os import getenv
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# JWT/Auth
+SECRET_KEY = getenv("API_SECRET_KEY")
+JWT_ALGORITHM = getenv("JWT_ALGORITHM", "HS256")
+JWT_PRIVATE_KEY = getenv("JWT_PRIVATE_KEY")
+JWT_PUBLIC_KEY = getenv("JWT_PUBLIC_KEY")
+JWT_ISSUER = getenv("JWT_ISSUER", "apipy")
+JWT_AUDIENCE = getenv("JWT_AUDIENCE", "apipy-clients")
+
+# Token lifetime (seconds)
+ACCESS_TOKEN_EXPIRE_SECONDS = int(getenv("ACCESS_TOKEN_EXPIRE_SECONDS", "900"))
+REFRESH_TOKEN_EXPIRE_SECONDS = int(getenv("REFRESH_TOKEN_EXPIRE_SECONDS", "604800"))
+
+# Security limits
+MAX_LOGIN_ATTEMPTS = int(getenv("MAX_LOGIN_ATTEMPTS", "5"))
+LOGIN_BLOCK_SECONDS = int(getenv("LOGIN_BLOCK_SECONDS", "60"))
+IP_RATE_LIMIT_ATTEMPTS = int(getenv("IP_RATE_LIMIT_ATTEMPTS", "20"))
+IP_RATE_LIMIT_WINDOW_SECONDS = int(getenv("IP_RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+# Cleanup settings
+CLEANUP_INTERVAL_SECONDS = 3600
+REVOKED_REFRESH_TOKEN_RETENTION_SECONDS = 7 * 24 * 3600
+IP_RATE_LIMIT_RETENTION_SECONDS = 24 * 3600
+
+# Verification settings
+EMAIL_VERIFICATION_TTL_SECONDS = 24 * 60 * 60

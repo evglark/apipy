@@ -4,12 +4,20 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apipy.auth.models import BlacklistedToken, Credential, Device, LoginAttempt, RefreshToken
-from apipy.auth.security import (
+from apipy.auth.models import (
+    BlacklistedToken,
+    Credential,
+    Device,
+    LoginAttempt,
+    RefreshToken,
+)
+from apipy.auth.constants import (
     ACCESS_TOKEN_EXPIRE_SECONDS,
     LOGIN_BLOCK_SECONDS,
     MAX_LOGIN_ATTEMPTS,
     REFRESH_TOKEN_EXPIRE_SECONDS,
+)
+from apipy.auth.utils.security import (
     create_jwt,
     decode_jwt,
     hash_token,
@@ -21,7 +29,9 @@ from apipy.auth.utils.tokens import _issue_token_pair
 
 
 async def _is_blocked(email: str, db: AsyncSession):
-    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == email))
+    result = await db.execute(
+        select(LoginAttempt).where(LoginAttempt.username == email)
+    )
     record = result.scalar_one_or_none()
     if not record:
         return False
@@ -30,7 +40,9 @@ async def _is_blocked(email: str, db: AsyncSession):
 
 async def _register_failed_attempt(email: str, db: AsyncSession):
     now = int(time.time())
-    result = await db.execute(select(LoginAttempt).where(LoginAttempt.username == email))
+    result = await db.execute(
+        select(LoginAttempt).where(LoginAttempt.username == email)
+    )
     record = result.scalar_one_or_none()
     if not record:
         record = LoginAttempt(username=email, count=1)

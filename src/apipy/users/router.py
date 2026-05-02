@@ -13,7 +13,7 @@ from apipy.users.service import (
 from apipy.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
-from apipy.auth.deps import require_permission, require_roles
+from apipy.auth.dependencies import require_permission, require_roles
 
 router = APIRouter(prefix="/users")
 
