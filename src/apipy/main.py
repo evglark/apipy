@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from apipy.auth.cleanup import cleanup_loop
+from apipy.auth.services.cleanup_service import cleanup_loop
 from apipy.auth.router import router as auth_router
 from apipy.users.router import router as users_router
 

@@ -15,23 +15,29 @@ from apipy.auth.schemas import (
     RegisterResponse,
     TokenPairResponse,
 )
-from apipy.auth.security import (
+from apipy.auth.constants import (
     IP_RATE_LIMIT_ATTEMPTS,
     IP_RATE_LIMIT_WINDOW_SECONDS,
+)
+from apipy.auth.utils.security import (
     decode_jwt,
     hash_token,
 )
-from apipy.auth.service import (
-    consume_magic_link,
-    create_magic_link,
+from apipy.auth.services.auth_service import (
     login_user,
     logout_user,
     refresh_access_token,
+)
+from apipy.auth.services.magic_link_service import (
+    consume_magic_link,
+    create_magic_link,
+)
+from apipy.auth.services.registration_service import (
     register_user,
     resend_verification_email,
     verify_email_token,
 )
-from apipy.auth.deps import oauth2_scheme, require_role
+from apipy.auth.dependencies import oauth2_scheme, require_role
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 REFRESH_COOKIE_KEY = "refresh_token"

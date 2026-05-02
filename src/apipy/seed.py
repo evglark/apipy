@@ -2,7 +2,7 @@ import asyncio
 from apipy.database import async_session
 from apipy.users.models import User
 from apipy.auth.models import Credential
-from apipy.auth.security import hash_password
+from apipy.auth.utils.security import hash_password
 
 
 async def seed_data():

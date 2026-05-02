@@ -1,5 +1,6 @@
 import pytest
-from apipy.auth.service import login_user, register_user
+from apipy.auth.services.auth_service import login_user
+from apipy.auth.services.registration_service import register_user
 from apipy.users.models import User
 from sqlalchemy import select
 
@@ -19,6 +20,14 @@ async def test_register_user_creates_record(db_session):
 async def test_login_user_returns_none_for_invalid_password(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
 
+    # Verify email first
+    result = await db_session.execute(
+        select(User).where(User.email == "student@example.com")
+    )
+    user = result.scalar_one()
+    user.email_verified = True
+    await db_session.commit()
+
     login_result = await login_user("student@example.com", "wrong", db_session)
 
     assert login_result is None
@@ -27,6 +36,8 @@ async def test_login_user_returns_none_for_invalid_password(db_session):
 @pytest.mark.asyncio
 async def test_login_user_returns_tokens_for_valid_credentials(db_session):
     await register_user("student", "student@example.com", "password123", db_session)
+
+    # Verify email first
     result = await db_session.execute(
         select(User).where(User.email == "student@example.com")
     )
@@ -34,9 +45,7 @@ async def test_login_user_returns_tokens_for_valid_credentials(db_session):
     user.email_verified = True
     await db_session.commit()
 
-    login_result = await login_user(
-        "student@example.com", "password123", db_session
-    )
+    login_result = await login_user("student@example.com", "password123", db_session)
 
     assert login_result is not None
     assert login_result["token_type"] == "bearer"

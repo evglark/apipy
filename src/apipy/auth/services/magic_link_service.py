@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apipy.auth.models import MagicToken, RefreshToken
-from apipy.auth.security import REFRESH_TOKEN_EXPIRE_SECONDS
+from apipy.auth.constants import REFRESH_TOKEN_EXPIRE_SECONDS
 from apipy.auth.utils.events import _log_event
 from apipy.auth.utils.queries import _find_user_by_email, _get_role_permissions
 from apipy.auth.utils.tokens import _issue_token_pair
@@ -48,7 +48,9 @@ async def consume_magic_link(token: str, db: AsyncSession):
 
     record.used = True
     permissions = await _get_role_permissions(user.role, db)
-    token_pair = _issue_token_pair(user, device_id="magic-link", permissions=permissions)
+    token_pair = _issue_token_pair(
+        user, device_id="magic-link", permissions=permissions
+    )
 
     new_refresh = RefreshToken(
         jti=token_pair["refresh_jti"],
